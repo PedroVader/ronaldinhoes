@@ -956,15 +956,16 @@
 
         .calc-results {
             background: var(--bg-dark);
-            border-radius: 12px;
-            padding: 14px;
+            border-radius: 14px;
+            padding: 16px;
             margin-top: 1rem;
         }
 
         .calc-row {
             display: flex;
             justify-content: space-between;
-            padding: 6px 0;
+            align-items: center;
+            padding: 8px 0;
             font-size: 0.88rem;
         }
 
@@ -972,16 +973,54 @@
             color: var(--text-secondary);
         }
 
-        .calc-row.total {
+        .calc-row + .calc-row {
             border-top: 1px solid var(--border-color);
-            margin-top: 6px;
-            padding-top: 10px;
-            font-weight: 700;
-            color: var(--verde);
         }
 
-        .calc-row.total span:last-child {
+        .calc-row .calc-val-negative {
+            color: #ef4444;
+        }
+
+        .calc-row .calc-val-pay {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Saved highlight */
+        .calc-saved {
+            margin-top: 12px;
+            background: linear-gradient(135deg, rgba(0, 151, 57, 0.12), rgba(0, 151, 57, 0.05));
+            border: 1px solid rgba(0, 151, 57, 0.25);
+            border-radius: 14px;
+            padding: 18px 16px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .calc-saved-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .calc-saved-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.4rem;
+            letter-spacing: 2px;
             color: var(--verde);
+            line-height: 1;
+        }
+
+        .calc-saved.pop {
+            animation: savedPop 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes savedPop {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.06); }
+            100% { transform: scale(1); }
         }
 
         /* ========== TELEGRAM FAB ========== */
@@ -1345,16 +1384,20 @@
         <div class="calc-results">
             <div class="calc-row">
                 <span>Precio del articulo</span>
-                <span id="calc-price">0.00 &euro;</span>
+                <span id="calc-price">0,00 &euro;</span>
             </div>
             <div class="calc-row">
                 <span>Fee (30%)</span>
-                <span id="calc-fee-display">0.00 &euro;</span>
+                <span id="calc-fee-display" class="calc-val-negative">-0,00 &euro;</span>
             </div>
-            <div class="calc-row total">
+            <div class="calc-row">
                 <span>Tu pagas</span>
-                <span id="calc-total">0.00 &euro;</span>
+                <span id="calc-total" class="calc-val-pay">0,00 &euro;</span>
             </div>
+        </div>
+        <div class="calc-saved" id="calc-saved">
+            <div class="calc-saved-label">Total que te ahorras</div>
+            <div class="calc-saved-value" id="calc-saved-value">0,00 &euro;</div>
         </div>
     </div>
 </div>
@@ -1831,15 +1874,26 @@ function closeCalc() {
     document.getElementById('calc-modal').classList.remove('open');
 }
 
+function fmt(n) {
+    return n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+}
+
 function updateCalc() {
     const amount = parseFloat(document.getElementById('calc-amount').value) || 0;
-    const feeRate = 0.30;
-    const fee = amount * feeRate;
-    const total = fee;
+    const fee = amount * 0.30;
+    const saved = amount - fee;
 
-    document.getElementById('calc-price').textContent = amount.toFixed(2) + ' €';
-    document.getElementById('calc-fee-display').textContent = fee.toFixed(2) + ' €';
-    document.getElementById('calc-total').textContent = total.toFixed(2) + ' €';
+    document.getElementById('calc-price').textContent = fmt(amount);
+    document.getElementById('calc-fee-display').textContent = '-' + fmt(fee);
+    document.getElementById('calc-total').textContent = fmt(fee);
+    document.getElementById('calc-saved-value').textContent = fmt(saved);
+
+    const box = document.getElementById('calc-saved');
+    if (amount > 0) {
+        box.classList.remove('pop');
+        void box.offsetWidth;
+        box.classList.add('pop');
+    }
 }
 
 // Close modal on overlay click
