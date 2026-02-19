@@ -1342,21 +1342,13 @@
             <label>Importe del articulo</label>
             <input type="number" id="calc-amount" placeholder="0.00" min="0" step="0.01" oninput="updateCalc()">
         </div>
-        <div class="calc-group">
-            <label>Metodo de pago</label>
-            <select id="calc-method" onchange="updateCalc()">
-                <option value="0.25">Crypto (25%)</option>
-                <option value="0.28">Transferencia (28%)</option>
-                <option value="0.30" selected>Estandar (30%)</option>
-            </select>
-        </div>
         <div class="calc-results">
             <div class="calc-row">
                 <span>Precio del articulo</span>
                 <span id="calc-price">0.00 &euro;</span>
             </div>
             <div class="calc-row">
-                <span>Fee aplicado</span>
+                <span>Fee (30%)</span>
                 <span id="calc-fee-display">0.00 &euro;</span>
             </div>
             <div class="calc-row total">
@@ -1841,7 +1833,7 @@ function closeCalc() {
 
 function updateCalc() {
     const amount = parseFloat(document.getElementById('calc-amount').value) || 0;
-    const feeRate = parseFloat(document.getElementById('calc-method').value);
+    const feeRate = 0.30;
     const fee = amount * feeRate;
     const total = fee;
 
