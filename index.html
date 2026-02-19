@@ -1,0 +1,1850 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R10 STORE - ronaldinho.es</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23009739'/%3E%3Cpath d='M32 6 L58 32 L32 58 L6 32 Z' fill='%23FFDF00'/%3E%3Ccircle cx='32' cy='32' r='12' fill='%23002776'/%3E%3Ctext x='32' y='38' text-anchor='middle' font-family='Arial,sans-serif' font-weight='900' font-size='14' fill='white'%3ER10%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --verde: #009739;
+            --amarillo: #FFDF00;
+            --azul: #002776;
+            --bg-dark: #0a0f0a;
+            --bg-card: #111a11;
+            --bg-card-hover: #162216;
+            --text-primary: #f0f0f0;
+            --text-secondary: #8fa88f;
+            --border-color: #1e3a1e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ========== CAPTCHA SCREEN ========== */
+        #captcha-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: var(--bg-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            transition: opacity 0.5s, transform 0.5s;
+        }
+
+        #captcha-screen.hiding {
+            opacity: 0;
+            transform: scale(1.05);
+            pointer-events: none;
+        }
+
+        .captcha-container {
+            text-align: center;
+            max-width: 460px;
+            padding: 2rem;
+        }
+
+        .captcha-logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3.5rem;
+            letter-spacing: 4px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--verde), var(--amarillo));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .captcha-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .captcha-instruction {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--amarillo);
+        }
+
+        .captcha-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .captcha-cell {
+            aspect-ratio: 1;
+            border-radius: 16px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-card);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .captcha-cell:hover {
+            border-color: var(--verde);
+            background: var(--bg-card-hover);
+            transform: scale(1.05);
+        }
+
+        .captcha-cell:active {
+            transform: scale(0.95);
+        }
+
+        .captcha-cell.correct {
+            border-color: var(--verde);
+            background: rgba(0, 151, 57, 0.2);
+            animation: correctPulse 0.6s ease;
+        }
+
+        .captcha-cell.wrong {
+            border-color: #e74c3c;
+            background: rgba(231, 76, 60, 0.15);
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        .captcha-hint {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .captcha-error {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            min-height: 1.4em;
+        }
+
+        /* ========== MAIN CONTENT ========== */
+        #main-content {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+
+        #main-content.visible {
+            display: block;
+            opacity: 1;
+        }
+
+        /* ========== NAVBAR ========== */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 15, 10, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.8rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-brand {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.6rem;
+            letter-spacing: 3px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .nav-brand span:first-child {
+            color: var(--amarillo);
+        }
+
+        .nav-brand span:last-child {
+            color: var(--verde);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-link {
+            padding: 8px 18px;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-decoration: none;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-link-secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .nav-link-secondary:hover {
+            border-color: var(--amarillo);
+            color: var(--amarillo);
+            background: rgba(255, 223, 0, 0.08);
+        }
+
+        .nav-link-primary {
+            background: var(--verde);
+            border: 1px solid var(--verde);
+            color: #fff;
+            box-shadow: 0 2px 10px rgba(0, 151, 57, 0.3);
+        }
+
+        .nav-link-primary:hover {
+            background: #00b847;
+            border-color: #00b847;
+            box-shadow: 0 4px 16px rgba(0, 151, 57, 0.45);
+            transform: translateY(-1px);
+        }
+
+        /* ========== HERO ========== */
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 3rem 2rem 2rem;
+            text-align: center;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(0, 151, 57, 0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-profile {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-avatar-wrap {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .hero-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--verde);
+            box-shadow: 0 0 30px rgba(0, 151, 57, 0.3);
+            display: block;
+        }
+
+        .verified-badge {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 30px;
+            height: 30px;
+            color: #1d9bf0;
+            background: var(--bg-dark);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px;
+        }
+
+        .verified-badge svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .hero-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.8rem;
+            letter-spacing: 5px;
+            margin-bottom: 0.3rem;
+        }
+
+        .hero-title .r10 {
+            color: var(--amarillo);
+        }
+
+        .hero-title .store {
+            color: var(--verde);
+        }
+
+        .hero-handle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .hero-stats {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-badge {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px 18px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-badge .stat-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .stat-badge .stat-value {
+            font-weight: 700;
+            color: var(--amarillo);
+        }
+
+        .stat-badge-link {
+            text-decoration: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .stat-badge-link:hover {
+            border-color: #29b6f6;
+            color: #29b6f6;
+            background: rgba(41, 182, 246, 0.1);
+        }
+
+        .hero-ctas {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .cta-btn {
+            padding: 12px 28px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-decoration: none;
+            border: none;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .cta-primary {
+            background: linear-gradient(135deg, var(--verde), #00b847);
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(0, 151, 57, 0.35);
+        }
+
+        .cta-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(0, 151, 57, 0.5);
+        }
+
+        .cta-secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .cta-secondary:hover {
+            border-color: var(--amarillo);
+            transform: translateY(-2px);
+        }
+
+        /* ========== BANNER ========== */
+        .hero-banner {
+            margin: 1.5rem auto 0;
+            max-width: 700px;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            aspect-ratio: 16/7;
+        }
+
+        .hero-banner img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .hero-banner::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, var(--bg-dark) 0%, transparent 40%);
+        }
+
+        /* ========== FILTER TABS ========== */
+        .section-stores {
+            padding: 1.5rem 2rem 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.2rem;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .section-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8rem;
+            letter-spacing: 3px;
+            color: var(--verde);
+        }
+
+        .store-count {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .store-count strong {
+            color: var(--amarillo);
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .filter-btn {
+            padding: 9px 18px;
+            border-radius: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--verde);
+            color: var(--text-primary);
+            background: var(--bg-card-hover);
+            transform: translateY(-1px);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, var(--verde), #00b847);
+            border-color: var(--verde);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0, 151, 57, 0.3);
+        }
+
+        .filter-count {
+            font-size: 0.68rem;
+            background: rgba(255,255,255,0.15);
+            padding: 1px 7px;
+            border-radius: 10px;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        .filter-btn:not(.active) .filter-count {
+            background: rgba(255,255,255,0.06);
+            color: var(--text-secondary);
+        }
+
+        .filter-btn svg,
+        .store-detail svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+            vertical-align: -2px;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 12px 18px;
+            border-radius: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.2s;
+        }
+
+        .search-bar::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .search-bar:focus {
+            outline: none;
+            border-color: var(--verde);
+        }
+
+        /* ========== STORE GRID ========== */
+        .store-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .store-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .store-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--verde), var(--amarillo));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .store-card:hover {
+            border-color: var(--verde);
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px rgba(0, 151, 57, 0.15), 0 0 0 1px rgba(0, 151, 57, 0.1);
+        }
+
+        .store-card:hover::before {
+            opacity: 1;
+        }
+
+        .store-card:hover .store-link-hint {
+            opacity: 1;
+        }
+
+        /* -- Card header -- */
+        .store-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 24px 24px 0;
+        }
+
+        .store-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--verde), var(--azul));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: #fff;
+            flex-shrink: 0;
+            letter-spacing: -0.5px;
+            overflow: hidden;
+        }
+
+        .store-icon.has-logo {
+            background: #fff;
+            padding: 7px;
+        }
+
+        .store-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .store-header-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .store-name {
+            font-weight: 800;
+            font-size: 1.05rem;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+
+        .store-header-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .store-category-tag {
+            font-size: 0.7rem;
+            padding: 3px 10px;
+            border-radius: 8px;
+            background: rgba(0, 39, 118, 0.25);
+            color: #6ba3ff;
+            font-weight: 600;
+        }
+
+        .store-fee {
+            font-size: 0.72rem;
+            padding: 4px 11px;
+            border-radius: 8px;
+            background: var(--verde);
+            color: #fff;
+            font-weight: 700;
+        }
+
+        /* -- Hot / featured card -- */
+        .store-card.hot {
+            border-color: rgba(255, 223, 0, 0.4);
+            background: linear-gradient(160deg, rgba(255, 223, 0, 0.06), var(--bg-card) 40%);
+            animation: hotGlow 3s ease-in-out infinite;
+            overflow: hidden;
+        }
+
+        @keyframes hotGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 223, 0, 0.08), 0 0 30px rgba(255, 150, 0, 0.04); }
+            50% { box-shadow: 0 0 25px rgba(255, 223, 0, 0.18), 0 0 50px rgba(255, 150, 0, 0.08); }
+        }
+
+        .store-card.hot::before {
+            background: linear-gradient(90deg, var(--amarillo), #ff9500, var(--amarillo));
+            background-size: 200% 100%;
+            opacity: 1;
+            animation: shimmerBar 2.5s linear infinite;
+        }
+
+        @keyframes shimmerBar {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .store-card.hot::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 40%,
+                rgba(255, 223, 0, 0.03) 45%,
+                rgba(255, 223, 0, 0.06) 50%,
+                rgba(255, 223, 0, 0.03) 55%,
+                transparent 60%
+            );
+            animation: shimmerCard 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shimmerCard {
+            0% { transform: translateX(-100%) rotate(0deg); }
+            100% { transform: translateX(100%) rotate(0deg); }
+        }
+
+        .store-card.hot:hover {
+            border-color: var(--amarillo);
+            box-shadow: 0 20px 40px rgba(255, 223, 0, 0.15), 0 0 0 1px rgba(255, 223, 0, 0.2);
+        }
+
+        .store-card.hot .store-hot-badge {
+            display: flex;
+        }
+
+        .store-hot-badge {
+            display: none;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--amarillo);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: auto;
+            animation: badgePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes badgePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .store-hot-badge svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* -- Card body with stats -- */
+        .store-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--border-color);
+            margin: 20px 24px;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .store-stat {
+            background: var(--bg-dark);
+            padding: 14px 12px;
+            text-align: center;
+        }
+
+        .store-stat-label {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .store-stat-label svg {
+            width: 12px;
+            height: 12px;
+            opacity: 0.6;
+        }
+
+        .store-stat-value {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+
+        /* -- Card footer -- */
+        .store-footer {
+            padding: 0 24px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-height: 32px;
+        }
+
+        .store-note {
+            font-size: 0.75rem;
+            color: var(--amarillo);
+            line-height: 1.4;
+            flex: 1;
+        }
+
+        .store-link-hint {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.72rem;
+            color: var(--verde);
+            opacity: 0;
+            transition: opacity 0.3s;
+            flex-shrink: 0;
+            font-weight: 600;
+        }
+
+        .store-link-hint svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            grid-column: 1 / -1;
+        }
+
+        /* ========== FOOTER ========== */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .footer-brand {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.2rem;
+            letter-spacing: 3px;
+            margin-bottom: 4px;
+        }
+
+        .footer-brand .r10 { color: var(--amarillo); }
+        .footer-brand .store { color: var(--verde); }
+
+        /* ========== CALCULATOR MODAL ========== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            z-index: 500;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 420px;
+            width: 90%;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.4rem;
+            cursor: pointer;
+        }
+
+        .modal h3 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            color: var(--amarillo);
+            margin-bottom: 1rem;
+        }
+
+        .calc-group {
+            margin-bottom: 1rem;
+        }
+
+        .calc-group label {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .calc-group input, .calc-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .calc-group input:focus, .calc-group select:focus {
+            outline: none;
+            border-color: var(--verde);
+        }
+
+        .calc-results {
+            background: var(--bg-dark);
+            border-radius: 12px;
+            padding: 14px;
+            margin-top: 1rem;
+        }
+
+        .calc-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 0.88rem;
+        }
+
+        .calc-row span:first-child {
+            color: var(--text-secondary);
+        }
+
+        .calc-row.total {
+            border-top: 1px solid var(--border-color);
+            margin-top: 6px;
+            padding-top: 10px;
+            font-weight: 700;
+            color: var(--verde);
+        }
+
+        .calc-row.total span:last-child {
+            color: var(--verde);
+        }
+
+        /* ========== TELEGRAM FAB ========== */
+        .fab-telegram {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #29b6f6;
+            color: #fff;
+            padding: 14px 22px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 0.88rem;
+            box-shadow: 0 6px 24px rgba(41, 182, 246, 0.4);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: fabEntry 0.6s 1s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+        }
+
+        .fab-telegram svg {
+            width: 22px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+
+        .fab-telegram:hover {
+            background: #0398d3;
+            transform: translateY(-3px) scale(1.04);
+            box-shadow: 0 10px 32px rgba(41, 182, 246, 0.5);
+        }
+
+        .fab-telegram:active {
+            transform: translateY(0) scale(0.97);
+        }
+
+        @keyframes fabEntry {
+            from { opacity: 0; transform: translateY(30px) scale(0.8); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ========== TRUST TICKER ========== */
+        .trust-ticker {
+            overflow: hidden;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 0;
+            position: relative;
+        }
+
+        .trust-ticker::before,
+        .trust-ticker::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 60px;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .trust-ticker::before {
+            left: 0;
+            background: linear-gradient(to right, var(--bg-card), transparent);
+        }
+
+        .trust-ticker::after {
+            right: 0;
+            background: linear-gradient(to left, var(--bg-card), transparent);
+        }
+
+        .trust-ticker-track {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            width: max-content;
+            animation: tickerScroll 30s linear infinite;
+        }
+
+        .trust-ticker-track:hover {
+            animation-play-state: paused;
+        }
+
+        @keyframes tickerScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .trust-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            padding: 0 8px;
+        }
+
+        .trust-item svg {
+            width: 16px;
+            height: 16px;
+            color: var(--verde);
+            flex-shrink: 0;
+        }
+
+        .trust-sep {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--verde);
+            flex-shrink: 0;
+            margin: 0 12px;
+            opacity: 0.5;
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0.7rem 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .hero {
+                padding: 2rem 1rem 1.5rem;
+            }
+
+            .hero-title {
+                font-size: 2rem;
+            }
+
+            .hero-stats {
+                gap: 0.8rem;
+            }
+
+            .stat-badge {
+                padding: 8px 12px;
+                font-size: 0.78rem;
+            }
+
+            .section-stores {
+                padding: 1rem 1rem 2rem;
+            }
+
+            .store-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .store-header {
+                padding: 20px 20px 0;
+            }
+
+            .store-stats {
+                margin: 16px 20px;
+            }
+
+            .store-footer {
+                padding: 0 20px 16px;
+            }
+
+            .captcha-logo {
+                font-size: 2.5rem;
+            }
+
+            .captcha-cell {
+                font-size: 2rem;
+            }
+
+            .fab-telegram {
+                bottom: 18px;
+                right: 18px;
+                padding: 14px;
+                border-radius: 50%;
+            }
+
+            .fab-label {
+                display: none;
+            }
+        }
+
+        /* ========== SCROLL REVEAL ========== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-left {
+            opacity: 0;
+            transform: translateX(-30px);
+            transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .reveal-left.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .reveal-scale {
+            opacity: 0;
+            transform: scale(0.92);
+            transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .reveal-scale.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .flag-stripe {
+            height: 3px;
+            background: linear-gradient(90deg, var(--verde) 0%, var(--verde) 33%, var(--amarillo) 33%, var(--amarillo) 66%, var(--azul) 66%, var(--azul) 100%);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Captcha Screen -->
+<div id="captcha-screen">
+    <div class="captcha-container">
+        <div class="captcha-logo">R10 STORE</div>
+        <p class="captcha-subtitle">Verificacion anti-bots</p>
+        <p class="captcha-instruction" id="captcha-question"></p>
+        <div class="captcha-grid" id="captcha-grid"></div>
+        <p class="captcha-error" id="captcha-error">&nbsp;</p>
+        <p class="captcha-hint">Esto nos ayuda a proteger nuestra comunidad</p>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div id="main-content">
+    <div class="flag-stripe"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a class="nav-brand" href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">
+            <span>R10</span>
+            <span>STORE</span>
+        </a>
+        <div class="nav-links">
+            <a class="nav-link nav-link-secondary" href="#" onclick="openCalc()">Calculadora</a>
+            <a class="nav-link nav-link-primary" href="#stores">Tiendas</a>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-profile">
+            <div class="hero-avatar-wrap reveal-scale">
+                <img class="hero-avatar" src="profile.jpg" alt="Ronaldinho">
+                <span class="verified-badge"><svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M8.603 3.799A4.49 4.49 0 0 1 12 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 0 1 3.498 1.307 4.491 4.491 0 0 1 1.307 3.497A4.49 4.49 0 0 1 21.75 12a4.49 4.49 0 0 1-1.549 3.397 4.491 4.491 0 0 1-1.307 3.497 4.491 4.491 0 0 1-3.497 1.307A4.49 4.49 0 0 1 12 21.75a4.49 4.49 0 0 1-3.397-1.549 4.49 4.49 0 0 1-3.498-1.306 4.491 4.491 0 0 1-1.307-3.498A4.49 4.49 0 0 1 2.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 0 1 1.307-3.497 4.49 4.49 0 0 1 3.497-1.307Zm7.007 6.387a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd"/></svg></span>
+            </div>
+            <h1 class="hero-title"><span class="r10">R10</span> <span class="store">STORE</span></h1>
+            <p class="hero-handle">ronaldinho.es</p>
+            <div class="hero-stats reveal">
+                <a class="stat-badge stat-badge-link" href="https://t.me/RNDINHO" target="_blank" rel="noopener noreferrer">
+                    <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"/></svg>
+                    @RNDINHO
+                </a>
+                <div class="stat-badge">
+                    <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg>
+                    <span class="stat-value">+3.000</span> Pedidos
+                </div>
+                <div class="stat-badge">
+                    <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.959 11.959 0 0 1 12 2.714Z"/></svg>
+                    Seguridad Garantizada
+                </div>
+            </div>
+            <div class="hero-ctas reveal">
+                <a class="cta-btn cta-primary" href="#stores">Ver Tiendas</a>
+                <button class="cta-btn cta-secondary" onclick="openCalc()">Calculadora</button>
+            </div>
+        </div>
+        <div class="hero-banner reveal-scale">
+            <img src="roni-2.webp" alt="Ronaldinho con la bandera de Brasil">
+        </div>
+    </section>
+
+    <!-- Trust ticker -->
+    <div class="trust-ticker reveal">
+        <div class="trust-ticker-track">
+            <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 0 1-.982-3.172M9.497 14.25a7.454 7.454 0 0 0 .981-3.172M5.25 4.236c-.996.178-1.768.562-2.038 1.09-.332.65.236 1.483 1.274 2.195A4.956 4.956 0 0 0 8 8.667M18.75 4.236c.996.178 1.768.562 2.038 1.09.332.65-.236 1.483-1.274 2.195A4.956 4.956 0 0 1 16 8.667m-8 0V4.5h8v4.167m-8 0h8"/></svg> Numero 1 de Espana</span>
+            <span class="trust-sep"></span>
+            <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg> +3.000 Pedidos</span>
+            <span class="trust-sep"></span>
+            <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> Soporte 24/7</span>
+            <span class="trust-sep"></span>
+            <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.959 11.959 0 0 1 12 2.714Z"/></svg> Seguridad Garantizada</span>
+            <span class="trust-sep"></span>
+            <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"/></svg> @RNDINHO en Telegram</span>
+            <span class="trust-sep"></span>
+            <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18.64m-13.14 0v-5.25a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0h4.5m6.14 0H21.6a1.5 1.5 0 0 0 1.5-1.5v-6.09c0-.298-.044-.592-.128-.873l-2.14-7.128A1.5 1.5 0 0 0 19.392 4.5H4.608a1.5 1.5 0 0 0-1.44 1.08L1.028 12.707c-.084.281-.128.575-.128.873v6.09a1.5 1.5 0 0 0 1.5 1.5h.36"/></svg> +136 Tiendas Disponibles</span>
+            <span class="trust-sep"></span>
+            <!-- duplicado para loop continuo -->
+            <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 0 1-.982-3.172M9.497 14.25a7.454 7.454 0 0 0 .981-3.172M5.25 4.236c-.996.178-1.768.562-2.038 1.09-.332.65.236 1.483 1.274 2.195A4.956 4.956 0 0 0 8 8.667M18.75 4.236c.996.178 1.768.562 2.038 1.09.332.65-.236 1.483-1.274 2.195A4.956 4.956 0 0 1 16 8.667m-8 0V4.5h8v4.167m-8 0h8"/></svg> Numero 1 de Espana</span>
+            <span class="trust-sep"></span>
+            <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg> +3.000 Pedidos</span>
+            <span class="trust-sep"></span>
+            <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg> Soporte 24/7</span>
+            <span class="trust-sep"></span>
+            <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.959 11.959 0 0 1 12 2.714Z"/></svg> Seguridad Garantizada</span>
+            <span class="trust-sep"></span>
+            <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"/></svg> @RNDINHO en Telegram</span>
+            <span class="trust-sep"></span>
+            <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18.64m-13.14 0v-5.25a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0h4.5m6.14 0H21.6a1.5 1.5 0 0 0 1.5-1.5v-6.09c0-.298-.044-.592-.128-.873l-2.14-7.128A1.5 1.5 0 0 0 19.392 4.5H4.608a1.5 1.5 0 0 0-1.44 1.08L1.028 12.707c-.084.281-.128.575-.128.873v6.09a1.5 1.5 0 0 0 1.5 1.5h.36"/></svg> +136 Tiendas Disponibles</span>
+            <span class="trust-sep"></span>
+        </div>
+    </div>
+
+    <!-- Stores Section -->
+    <section class="section-stores" id="stores">
+        <div class="section-header reveal-left">
+            <h2 class="section-title">TIENDAS DISPONIBLES</h2>
+            <span class="store-count" id="store-count"></span>
+        </div>
+        <div class="filter-bar" id="filter-bar"></div>
+        <input type="text" class="search-bar" id="search-bar" placeholder="Buscar tienda...">
+        <div class="store-grid" id="store-grid"></div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer reveal">
+        <div class="flag-stripe" style="margin-bottom: 1.5rem;"></div>
+        <div class="footer-brand"><span class="r10">R10</span> <span class="store">STORE</span></div>
+        <p>&copy; 2026 ronaldinho.es - Todos los derechos reservados</p>
+    </footer>
+</div>
+
+<!-- Telegram FAB -->
+<a class="fab-telegram" href="https://t.me/RNDINHO" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0h-.056Zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635Z"/></svg>
+    <span class="fab-label">Telegram</span>
+</a>
+
+<!-- Calculator Modal -->
+<div class="modal-overlay" id="calc-modal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeCalc()">&times;</button>
+        <h3>CALCULADORA</h3>
+        <div class="calc-group">
+            <label>Importe del articulo</label>
+            <input type="number" id="calc-amount" placeholder="0.00" min="0" step="0.01" oninput="updateCalc()">
+        </div>
+        <div class="calc-group">
+            <label>Metodo de pago</label>
+            <select id="calc-method" onchange="updateCalc()">
+                <option value="0.25">Crypto (25%)</option>
+                <option value="0.28">Transferencia (28%)</option>
+                <option value="0.30" selected>Estandar (30%)</option>
+            </select>
+        </div>
+        <div class="calc-results">
+            <div class="calc-row">
+                <span>Precio del articulo</span>
+                <span id="calc-price">0.00 &euro;</span>
+            </div>
+            <div class="calc-row">
+                <span>Fee aplicado</span>
+                <span id="calc-fee-display">0.00 &euro;</span>
+            </div>
+            <div class="calc-row total">
+                <span>Tu pagas</span>
+                <span id="calc-total">0.00 &euro;</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============ STORE DATA ============
+const stores = [
+    {name:"AMAZON ES",limit:"3.000 €",items:"2",time:"1 - 10 días",fee:"30%",category:"Electrónica",note:"Artículos enviados y vendidos por Amazon."},
+    {name:"AMAZON ES",limit:"5.000 €",items:"4",time:"20 - 40 días",fee:"30%",category:"Electrónica",note:"Artículos enviados y vendidos por Amazon."},
+    {name:"APPLE",limit:"2.000 €",items:"1",time:"3 - 15 días",fee:"30%",category:"Electrónica",note:"En la recepcion dar otro DNI y nombre distinto."},
+    {name:"BACKMARKET",limit:"2.000 €",items:"1",time:"7 - 21 días",fee:"30%",category:"Electrónica",note:"Enviarnos enlace antes de realizar el pedido."},
+    {name:"CECOTEC",limit:"800 €",items:"1",time:"20 - 60 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"DE'LONGHI",limit:"1.500 €",items:"2",time:"21 - 60 días",fee:"30%",category:"Electrónica",note:"Envío con UPS."},
+    {name:"GOOGLE STORE",limit:"1.500 €",items:"1",time:"7 - 31 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"GOVEE",limit:"1.000 €",items:"1",time:"1 - 10 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"HONOR",limit:"2.000 €",items:"1",time:"7 - 21 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"HP",limit:"1.500 €",items:"1",time:"30 - 50 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"IROBOT",limit:"1.500 €",items:"3",time:"21 - 30 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"LEICA CAMARA",limit:"2.000 €",items:"1",time:"14 - 30 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"LENOVO",limit:"2.000 €",items:"1",time:"30 - 50 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"LOGITECH",limit:"1.000 €",items:"5",time:"7 - 45 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"META",limit:"2.000 €",items:"3",time:"3 - 14 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"MICROSOFT",limit:"2.000 €",items:"1",time:"21 - 30 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"PCCOMPONENTES",limit:"1.000 €",items:"1",time:"7 - 14 días",fee:"30%",category:"Electrónica",note:"Artículos enviados y vendidos por PcComponentes."},
+    {name:"PHILIPS",limit:"2.000 €",items:"3",time:"7 - 31 días",fee:"30%",category:"Electrónica",note:"Envío con UPS."},
+    {name:"ROBOROCK",limit:"1.500 €",items:"1",time:"1 - 7 días",fee:"30%",category:"Electrónica",note:"Envío con UPS."},
+    {name:"SAMSUNG",limit:"2.000 €",items:"1",time:"7 - 21 días",fee:"30%",category:"Electrónica",note:"Recomendado PayPal para mas articulos y precio."},
+    {name:"SONY",limit:"1.000 €",items:"2",time:"7 - 21 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"STEAMDECK",limit:"1.000 €",items:"2",time:"3 - 21 días",fee:"30%",category:"Electrónica",note:"Recomendado el uso de cuenta antigua."},
+    {name:"TEMU",limit:"400 €",items:"∞",time:"1 - 14 días",fee:"30%",category:"Electrónica",note:"Artículos enviados por Temu."},
+    {name:"THRUSTMASTER",limit:"400 €",items:"1",time:"7 - 21 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"VEEPEE",limit:"1.500 €",items:"10",time:"21 - 40 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"SENETIC",limit:"1.500 €",items:"4",time:"21 - 40 días",fee:"30%",category:"Electrónica",note:"Envío con UPS."},
+    {name:"CORSAIR",limit:"2.000 €",items:"3",time:"21 - 40 días",fee:"30%",category:"Electrónica",note:"No es posible con almacenamientos ni DRAM."},
+    {name:"SHARKCLEAN",limit:"3.000 €",items:"1",time:"1 - 14 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"DELL",limit:"3.000 €",items:"1",time:"14 - 30 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"RING",limit:"5.000 €",items:"5",time:"14 - 30 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"BOSE",limit:"3.000 €",items:"3",time:"14 - 30 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"BANG OLUFSEN",limit:"5.000 €",items:"3",time:"14 - 30 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"ELECTRONIS",limit:"1.500 €",items:"4",time:"14 - 30 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"BOWERSWILKINS",limit:"5.000 €",items:"3",time:"14 - 30 días",fee:"30%",category:"Electrónica",note:""},
+    {name:"ABERCROMBIE",limit:"2.500 €",items:"∞",time:"14 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"ADIDAS",limit:"2.000 €",items:"20",time:"1 - 14 días",fee:"30%",category:"Ropa",note:"Seleccionar la opcion de envio urgente."},
+    {name:"ALVARO MORENO",limit:"500 €",items:"10",time:"14 - 21 días",fee:"30%",category:"Ropa",note:"Añadir 4 articulos baratos."},
+    {name:"BABOLAT",limit:"1.500 €",items:"5",time:"14 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"BROOKS",limit:"500 €",items:"3",time:"3 - 7 días",fee:"30%",category:"Ropa",note:""},
+    {name:"CAROLINA HERRERA",limit:"2.500 €",items:"3",time:"1 - 14 días",fee:"30%",category:"Ropa",note:"Envío con UPS."},
+    {name:"COLD CULTURE",limit:"400 €",items:"5",time:"3 - 14 días",fee:"30%",category:"Ropa",note:""},
+    {name:"CROCS",limit:"400 €",items:"8",time:"3 - 14 días",fee:"30%",category:"Ropa",note:""},
+    {name:"DR. MARTENS",limit:"800 €",items:"5",time:"14 - 21 días",fee:"30%",category:"Ropa",note:"Envío con UPS."},
+    {name:"ECOALF",limit:"400 €",items:"1",time:"3 - 7 días",fee:"30%",category:"Ropa",note:""},
+    {name:"FARFETCH",limit:"2.000 €",items:"2",time:"7 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"FREDPERRY",limit:"1.000 €",items:"10",time:"14 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"GAFASWORLD",limit:"500 €",items:"5",time:"7 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"GUESS",limit:"2.000 €",items:"7",time:"7 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"GYMSHARK",limit:"1.000 €",items:"10",time:"3 - 14 días",fee:"30%",category:"Ropa",note:"Añadir 4 articulos baratos."},
+    {name:"H&M",limit:"600 €",items:"10",time:"3 - 14 días",fee:"30%",category:"Ropa",note:"Artículos enviados por H&M."},
+    {name:"HOLLISTER",limit:"2.500 €",items:"∞",time:"14 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"HURLY",limit:"∞",items:"∞",time:"7 - 14 días",fee:"30%",category:"Ropa",note:""},
+    {name:"JDSPORTS",limit:"400 €",items:"1",time:"7 - 14 días",fee:"30%",category:"Ropa",note:""},
+    {name:"LEVI'S",limit:"500 €",items:"10",time:"7 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"LOEWE",limit:"2.500 €",items:"4",time:"14 - 30 días",fee:"30%",category:"Ropa",note:""},
+    {name:"LOUIS VUITTON",limit:"1.500 €",items:"1",time:"14 - 30 días",fee:"30%",category:"Ropa",note:""},
+    {name:"LYLE AND SCOTT",limit:"1.500 €",items:"1",time:"14 - 30 días",fee:"30%",category:"Ropa",note:""},
+    {name:"MANGO",limit:"600 €",items:"5",time:"1 - 7 días",fee:"30%",category:"Ropa",note:"Añadir 2 articulos baratos."},
+    {name:"MASSIMO DUTTI",limit:"500 €",items:"4",time:"14 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"MICHAEL KORS",limit:"1.000 €",items:"10",time:"14 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"MONCLER",limit:"2.000 €",items:"5",time:"14 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"OAKLEY",limit:"500 €",items:"2",time:"14 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"PRADA",limit:"1.000 €",items:"10",time:"14 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"PRIVALIA",limit:"1.000 €",items:"10",time:"14 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"PUMA",limit:"2.000 €",items:"20",time:"1 - 10 días",fee:"30%",category:"Ropa",note:"Envío con UPS."},
+    {name:"RALPH LAUREN",limit:"2.000 €",items:"∞",time:"7 - 21 días",fee:"30%",category:"Ropa",note:"Envío con UPS."},
+    {name:"RAYBAN",limit:"1.500 €",items:"15",time:"14 - 30 días",fee:"30%",category:"Ropa",note:""},
+    {name:"SALOMON",limit:"1.500 €",items:"5",time:"30 - 45 días",fee:"30%",category:"Ropa",note:""},
+    {name:"SCALPERS",limit:"400 €",items:"5",time:"1 - 10 días",fee:"30%",category:"Ropa",note:""},
+    {name:"SHEIN",limit:"800 €",items:"∞",time:"14 - 30 días",fee:"30%",category:"Ropa",note:"Solo artículos con opción a devolución."},
+    {name:"SHOWROOMPRIVE",limit:"1.000 €",items:"15",time:"14 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"SIROKO",limit:"400 €",items:"3",time:"3 - 7 días",fee:"30%",category:"Ropa",note:""},
+    {name:"STRADIVARIUS",limit:"500 €",items:"10",time:"3 - 7 días",fee:"30%",category:"Ropa",note:""},
+    {name:"SUNGLASS HUT",limit:"1.500 €",items:"15",time:"14 - 30 días",fee:"30%",category:"Ropa",note:""},
+    {name:"VANS",limit:"400 €",items:"3",time:"3 - 7 días",fee:"30%",category:"Ropa",note:""},
+    {name:"VENUM",limit:"1.000 €",items:"∞",time:"1 - 21 días",fee:"30%",category:"Ropa",note:"No pedir sacos de boxeo u otros artículos grandes."},
+    {name:"VERSACE",limit:"1.000 €",items:"1",time:"7 - 21 días",fee:"30%",category:"Ropa",note:""},
+    {name:"VICTORIA'S SECRET",limit:"1.000 €",items:"10",time:"7 - 14 días",fee:"30%",category:"Ropa",note:"Añadir 3 - 4 articulos baratos."},
+    {name:"VINTED",limit:"800 €",items:"1",time:"21 - 30 días",fee:"30%",category:"Ropa",note:""},
+    {name:"VOLCOM",limit:"400 €",items:"2",time:"7 - 14 días",fee:"30%",category:"Ropa",note:""},
+    {name:"YUXUS",limit:"400 €",items:"4",time:"7 - 14 días",fee:"30%",category:"Ropa",note:""},
+    {name:"ZARA",limit:"800 €",items:"10",time:"14 - 21 días",fee:"30%",category:"Ropa",note:"Añadir 3 articulos baratos."},
+    {name:"REEBOK",limit:"2.000 €",items:"20",time:"14 - 21 días",fee:"30%",category:"Ropa",note:"Envío con UPS."},
+    {name:"DECATHLON",limit:"1.000 €",items:"10",time:"21 - 30 días",fee:"30%",category:"Deporte",note:"Artículos vendidos y enviados por Decathlon."},
+    {name:"SALEWA",limit:"1.500 €",items:"10",time:"7 - 30 días",fee:"30%",category:"Deporte",note:""},
+    {name:"BABOLAT",limit:"2.000 €",items:"10",time:"21 - 40 días",fee:"30%",category:"Deporte",note:""},
+    {name:"LOOKFANTASTIC",limit:"400 €",items:"10",time:"3 - 7 días",fee:"30%",category:"Cosmética",note:""},
+    {name:"IHERB",limit:"500 €",items:"5",time:"7 - 14 días",fee:"30%",category:"Salud",note:""},
+    {name:"PROZIS",limit:"400 €",items:"7",time:"7 - 14 días",fee:"30%",category:"Salud",note:""},
+    {name:"ARISTOCRAZY",limit:"500 €",items:"3",time:"1 - 10 días",fee:"30%",category:"Joyería",note:""},
+    {name:"CASIO",limit:"800 €",items:"1",time:"1 - 10 días",fee:"30%",category:"Joyería",note:""},
+    {name:"PANDORA",limit:"2.000 €",items:"5",time:"7 - 30 días",fee:"30%",category:"Joyería",note:"No modificar el tamaño ni la personalización."},
+    {name:"SWAROVSKI",limit:"400 €",items:"2",time:"1 - 7 días",fee:"30%",category:"Joyería",note:""},
+    {name:"TIFFANY & CO.",limit:"2.000 €",items:"5",time:"21 - 30 días",fee:"30%",category:"Joyería",note:"No modificar el tamaño ni la personalización."},
+    {name:"TWOJEYS",limit:"400 €",items:"4",time:"14 - 21 días",fee:"30%",category:"Joyería",note:""},
+    {name:"BABYBJORN",limit:"1.000 €",items:"5",time:"7 - 14 días",fee:"30%",category:"Bebés",note:"Envío con UPS."},
+    {name:"BUGABOO",limit:"1.500 €",items:"5",time:"14 - 30 días",fee:"30%",category:"Bebés",note:"Envío con UPS."},
+    {name:"STOKKE",limit:"1.500 €",items:"5",time:"14 - 30 días",fee:"30%",category:"Bebés",note:"Envío con UPS."},
+    {name:"LEGO",limit:"2.000 €",items:"3",time:"14 - 30 días",fee:"30%",category:"Bebés",note:""},
+    {name:"ALPINESTARS",limit:"1.000 €",items:"2",time:"14 - 30 días",fee:"30%",category:"Otros",note:""},
+    {name:"MOTOCARD",limit:"1.000 €",items:"2",time:"14 - 30 días",fee:"30%",category:"Otros",note:""},
+    {name:"EMMA STORE",limit:"1.000 €",items:"∞",time:"7 - 30 días",fee:"30%",category:"Otros",note:""},
+    {name:"SAMSONITE",limit:"1.500 €",items:"2",time:"21 - 30 días",fee:"30%",category:"Otros",note:""},
+    {name:"SECRETLAB",limit:"1.500 €",items:"1",time:"7 - 14 días",fee:"30%",category:"Otros",note:"Envío con UPS."},
+    {name:"THRUSTMASTER",limit:"500 €",items:"1",time:"7 - 14 días",fee:"30%",category:"Otros",note:""},
+    {name:"XIAOMI",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+    {name:"LENOVO",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+    {name:"AMD STORE",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+    {name:"HP",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+    {name:"SAMSUNG",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+    {name:"DYSON",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+    {name:"GOMIBO",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+    {name:"ASGOODASNEW",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+    {name:"ORIGIN PC",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+    {name:"CORSAIR",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+    {name:"RAZER",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+    {name:"CANON",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+    {name:"KARL LAGERFELD",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+    {name:"BALMAIN",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+    {name:"FNAC",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+    {name:"EL CORTE INGLES",limit:"8.000 €",items:"∞",time:"20 - 40 días",fee:"30%",category:"Paypal",note:"Pago con PayPal únicamente."},
+];
+
+// ============ STORE DOMAIN MAP (for logos) ============
+const domainMap = {
+    "AMAZON ES": "amazon.es",
+    "APPLE": "apple.com",
+    "BACKMARKET": "backmarket.es",
+    "CECOTEC": "cecotec.es",
+    "DE'LONGHI": "delonghi.com",
+    "GOOGLE STORE": "store.google.com",
+    "GOVEE": "govee.com",
+    "HONOR": "hihonor.com",
+    "HP": "hp.com",
+    "IROBOT": "irobot.com",
+    "LEICA CAMARA": "leica-camera.com",
+    "LENOVO": "lenovo.com",
+    "LOGITECH": "logitech.com",
+    "META": "meta.com",
+    "MICROSOFT": "microsoft.com",
+    "PCCOMPONENTES": "pccomponentes.com",
+    "PHILIPS": "philips.es",
+    "ROBOROCK": "roborock.com",
+    "SAMSUNG": "samsung.com",
+    "SONY": "sony.es",
+    "STEAMDECK": "store.steampowered.com",
+    "TEMU": "temu.com",
+    "THRUSTMASTER": "thrustmaster.com",
+    "VEEPEE": "veepee.es",
+    "SENETIC": "senetic.es",
+    "CORSAIR": "corsair.com",
+    "SHARKCLEAN": "sharkclean.com",
+    "DELL": "dell.com",
+    "RING": "ring.com",
+    "BOSE": "bose.com",
+    "BANG OLUFSEN": "bang-olufsen.com",
+    "ELECTRONIS": "electronis.de",
+    "BOWERSWILKINS": "bowerswilkins.com",
+    "ABERCROMBIE": "abercrombie.com",
+    "ADIDAS": "adidas.es",
+    "ALVARO MORENO": "alvaromoreno.com",
+    "BABOLAT": "babolat.com",
+    "BROOKS": "brooksrunning.com",
+    "CAROLINA HERRERA": "carolinaherrera.com",
+    "COLD CULTURE": "coldculture.com",
+    "CROCS": "crocs.es",
+    "DR. MARTENS": "drmartens.com",
+    "ECOALF": "ecoalf.com",
+    "FARFETCH": "farfetch.com",
+    "FREDPERRY": "fredperry.com",
+    "GAFASWORLD": "gafasworld.es",
+    "GUESS": "guess.eu",
+    "GYMSHARK": "gymshark.com",
+    "H&M": "hm.com",
+    "HOLLISTER": "hollisterco.com",
+    "HURLY": "hurley.com",
+    "JDSPORTS": "jdsports.es",
+    "LEVI'S": "levi.com",
+    "LOEWE": "loewe.com",
+    "LOUIS VUITTON": "louisvuitton.com",
+    "LYLE AND SCOTT": "lyleandscott.com",
+    "MANGO": "mango.com",
+    "MASSIMO DUTTI": "massimodutti.com",
+    "MICHAEL KORS": "michaelkors.com",
+    "MONCLER": "moncler.com",
+    "OAKLEY": "oakley.com",
+    "PRADA": "prada.com",
+    "PRIVALIA": "privalia.com",
+    "PUMA": "puma.com",
+    "RALPH LAUREN": "ralphlauren.com",
+    "RAYBAN": "ray-ban.com",
+    "SALOMON": "salomon.com",
+    "SCALPERS": "scalpers.com",
+    "SHEIN": "shein.com",
+    "SHOWROOMPRIVE": "showroomprive.es",
+    "SIROKO": "siroko.com",
+    "STRADIVARIUS": "stradivarius.com",
+    "SUNGLASS HUT": "sunglasshut.com",
+    "VANS": "vans.com",
+    "VENUM": "venum.com",
+    "VERSACE": "versace.com",
+    "VICTORIA'S SECRET": "victoriassecret.com",
+    "VINTED": "vinted.es",
+    "VOLCOM": "volcom.com",
+    "YUXUS": "yuxus.com",
+    "ZARA": "zara.com",
+    "REEBOK": "reebok.com",
+    "DECATHLON": "decathlon.es",
+    "SALEWA": "salewa.com",
+    "LOOKFANTASTIC": "lookfantastic.es",
+    "IHERB": "iherb.com",
+    "PROZIS": "prozis.com",
+    "ARISTOCRAZY": "aristocrazy.com",
+    "CASIO": "casio.com",
+    "PANDORA": "pandora.net",
+    "SWAROVSKI": "swarovski.com",
+    "TIFFANY & CO.": "tiffany.com",
+    "TWOJEYS": "twojeys.com",
+    "BABYBJORN": "babybjorn.com",
+    "BUGABOO": "bugaboo.com",
+    "STOKKE": "stokke.com",
+    "LEGO": "lego.com",
+    "ALPINESTARS": "alpinestars.com",
+    "MOTOCARD": "motocard.com",
+    "EMMA STORE": "emma-colchon.com",
+    "SAMSONITE": "samsonite.es",
+    "SECRETLAB": "secretlab.eu",
+    "XIAOMI": "xiaomi.com",
+    "AMD STORE": "amd.com",
+    "DYSON": "dyson.es",
+    "GOMIBO": "gomibo.es",
+    "ASGOODASNEW": "asgoodasnew.com",
+    "ORIGIN PC": "originpc.com",
+    "RAZER": "razer.com",
+    "CANON": "canon.es",
+    "KARL LAGERFELD": "karl.com",
+    "BALMAIN": "balmain.com",
+    "FNAC": "fnac.es",
+    "EL CORTE INGLES": "elcorteingles.es",
+};
+
+function getLogoUrl(name) {
+    const domain = domainMap[name];
+    if (!domain) return null;
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+}
+
+// ============ HEROICON SVG HELPER ============
+function hi(d) {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+}
+
+const HI = {
+    globe:       hi('<path d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5a17.92 17.92 0 0 1-8.716-2.247m0 0A8.966 8.966 0 0 1 3 12c0-1.264.26-2.469.73-3.563"/>'),
+    bolt:        hi('<path d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"/>'),
+    tag:         hi('<path d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z"/><path d="M6 6h.008v.008H6V6Z"/>'),
+    trophy:      hi('<path d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 0 1-.982-3.172M9.497 14.25a7.454 7.454 0 0 0 .981-3.172M5.25 4.236c-.996.178-1.768.562-2.038 1.09-.332.65.236 1.483 1.274 2.195A4.956 4.956 0 0 0 8 8.667M18.75 4.236c.996.178 1.768.562 2.038 1.09.332.65-.236 1.483-1.274 2.195A4.956 4.956 0 0 1 16 8.667m-8 0V4.5h8v4.167m-8 0h8"/>'),
+    sparkles:    hi('<path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/>'),
+    heart:       hi('<path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/>'),
+    gem:         hi('<path d="M2.25 7.125 12 2.25l9.75 4.875M2.25 7.125l9.75 4.875m-9.75-4.875v9.75L12 21.75m9.75-14.625L12 12m9.75-4.875v9.75L12 21.75M12 12v9.75"/>'),
+    gift:        hi('<path d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/>'),
+    cube:        hi('<path d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>'),
+    creditCard:  hi('<path d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"/>'),
+    banknotes:   hi('<path d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z"/>'),
+    clock:       hi('<path d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>'),
+    shoppingBag: hi('<path d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>'),
+    inbox:       hi('<path d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z"/>'),
+};
+
+// ============ CATEGORY ICONS ============
+const catIcons = {
+    "Electrónica": HI.bolt,
+    "Ropa": HI.tag,
+    "Deporte": HI.trophy,
+    "Cosmética": HI.sparkles,
+    "Salud": HI.heart,
+    "Joyería": HI.gem,
+    "Bebés": HI.gift,
+    "Otros": HI.cube,
+    "Paypal": HI.creditCard,
+};
+
+// ============ CAPTCHA ============
+const captchaEmojis = [
+    { emoji: "&#9917;", label: "balón de fútbol" },
+    { emoji: "&#127942;", label: "trofeo" },
+    { emoji: "&#127463;&#127479;", label: "bandera de Brasil" },
+    { emoji: "&#129351;", label: "medalla de oro" },
+    { emoji: "&#128085;", label: "camiseta" },
+];
+
+const distractors = [
+    "&#127828;", "&#128187;", "&#127843;", "&#128690;", "&#127918;",
+    "&#128218;", "&#127911;", "&#128640;", "&#127793;", "&#128038;",
+    "&#9749;", "&#127752;", "&#128214;", "&#128736;",
+];
+
+function initCaptcha() {
+    const target = captchaEmojis[Math.floor(Math.random() * captchaEmojis.length)];
+    document.getElementById('captcha-question').innerHTML =
+        `Haz click en: ${target.emoji} (${target.label})`;
+
+    const cells = [];
+    // Add the correct answer
+    cells.push({ html: target.emoji, correct: true });
+    // Add 8 distractors
+    const shuffled = [...distractors].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < 8; i++) {
+        cells.push({ html: shuffled[i], correct: false });
+    }
+    // Shuffle
+    cells.sort(() => Math.random() - 0.5);
+
+    const grid = document.getElementById('captcha-grid');
+    grid.innerHTML = '';
+    cells.forEach(cell => {
+        const div = document.createElement('div');
+        div.className = 'captcha-cell';
+        div.innerHTML = cell.html;
+        div.addEventListener('click', () => handleCaptchaClick(div, cell.correct));
+        grid.appendChild(div);
+    });
+}
+
+function handleCaptchaClick(el, isCorrect) {
+    const error = document.getElementById('captcha-error');
+    if (isCorrect) {
+        el.classList.add('correct');
+        error.innerHTML = '&nbsp;';
+        setTimeout(() => {
+            const screen = document.getElementById('captcha-screen');
+            screen.classList.add('hiding');
+            setTimeout(() => {
+                screen.style.display = 'none';
+                const main = document.getElementById('main-content');
+                main.classList.add('visible');
+            }, 500);
+        }, 600);
+    } else {
+        el.classList.add('wrong');
+        error.textContent = 'Incorrecto, inténtalo de nuevo';
+        setTimeout(() => {
+            el.classList.remove('wrong');
+            initCaptcha();
+        }, 800);
+    }
+}
+
+// ============ STORE RENDERING ============
+const categories = ["Todas", ...new Set(stores.map(s => s.category))];
+let activeCategory = "Todas";
+
+function getCatCount(cat) {
+    if (cat === "Todas") return stores.length;
+    return stores.filter(s => s.category === cat).length;
+}
+
+function renderFilters() {
+    const bar = document.getElementById('filter-bar');
+    bar.innerHTML = '';
+    categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn' + (cat === activeCategory ? ' active' : '');
+        const icon = cat === "Todas" ? HI.globe : (catIcons[cat] || "");
+        const count = getCatCount(cat);
+        btn.innerHTML = `${icon} ${cat} <span class="filter-count">${count}</span>`;
+        btn.addEventListener('click', () => {
+            activeCategory = cat;
+            renderFilters();
+            renderStores();
+        });
+        bar.appendChild(btn);
+    });
+}
+
+function renderStores() {
+    const search = document.getElementById('search-bar').value.toLowerCase();
+    const grid = document.getElementById('store-grid');
+    grid.innerHTML = '';
+
+    const filtered = stores.filter(s => {
+        const matchCat = activeCategory === "Todas" || s.category === activeCategory;
+        const matchSearch = s.name.toLowerCase().includes(search);
+        return matchCat && matchSearch;
+    });
+
+    document.getElementById('store-count').innerHTML =
+        `Mostrando <strong>${filtered.length}</strong> de ${stores.length} tiendas`;
+
+    if (filtered.length === 0) {
+        grid.innerHTML = '<div class="no-results">No se encontraron tiendas</div>';
+        return;
+    }
+
+    const arrowSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>`;
+    const limitSvg = HI.banknotes;
+    const itemsSvg = HI.shoppingBag;
+    const clockSvg = HI.clock;
+
+    filtered.forEach((store, i) => {
+        const domain = domainMap[store.name];
+        const href = domain ? `https://${domain}` : '#';
+        const isHot = store.name === 'AMAZON ES';
+        const card = document.createElement('a');
+        card.className = 'store-card reveal' + (isHot ? ' hot' : '');
+        card.href = href;
+        if (domain) { card.target = '_blank'; card.rel = 'noopener noreferrer'; }
+        card.style.transitionDelay = `${Math.min(i * 0.06, 0.4)}s`;
+
+        const initials = store.name.substring(0, 2);
+        const logoUrl = getLogoUrl(store.name);
+
+        const iconHtml = logoUrl
+            ? `<div class="store-icon has-logo"><img src="${logoUrl}" alt="${store.name}" onerror="this.parentElement.classList.remove('has-logo');this.replaceWith(document.createTextNode('${initials}'))"></div>`
+            : `<div class="store-icon">${initials}</div>`;
+
+        const noteHtml = store.note
+            ? `<div class="store-note">${store.note}</div>`
+            : '';
+
+        const linkHint = domain
+            ? `<span class="store-link-hint">Visitar ${arrowSvg}</span>`
+            : '';
+
+        card.innerHTML = `
+            <div class="store-header">
+                ${iconHtml}
+                <div class="store-header-text">
+                    <div class="store-name">${store.name}</div>
+                    <div class="store-header-meta">
+                        <span class="store-category-tag">${store.category}</span>
+                        <span class="store-fee">${store.fee}</span>
+                        <span class="store-hot-badge">${HI.bolt} Popular</span>
+                    </div>
+                </div>
+            </div>
+            <div class="store-stats">
+                <div class="store-stat">
+                    <div class="store-stat-label">${limitSvg} Limite</div>
+                    <div class="store-stat-value">${store.limit}</div>
+                </div>
+                <div class="store-stat">
+                    <div class="store-stat-label">${itemsSvg} Items</div>
+                    <div class="store-stat-value">${store.items}</div>
+                </div>
+                <div class="store-stat">
+                    <div class="store-stat-label">${clockSvg} Tiempo</div>
+                    <div class="store-stat-value">${store.time}</div>
+                </div>
+            </div>
+            <div class="store-footer">
+                ${noteHtml}
+                ${linkHint}
+            </div>
+        `;
+        grid.appendChild(card);
+        revealObserver.observe(card);
+    });
+}
+
+// ============ CALCULATOR ============
+function openCalc() {
+    document.getElementById('calc-modal').classList.add('open');
+}
+
+function closeCalc() {
+    document.getElementById('calc-modal').classList.remove('open');
+}
+
+function updateCalc() {
+    const amount = parseFloat(document.getElementById('calc-amount').value) || 0;
+    const feeRate = parseFloat(document.getElementById('calc-method').value);
+    const fee = amount * feeRate;
+    const total = fee;
+
+    document.getElementById('calc-price').textContent = amount.toFixed(2) + ' €';
+    document.getElementById('calc-fee-display').textContent = fee.toFixed(2) + ' €';
+    document.getElementById('calc-total').textContent = total.toFixed(2) + ' €';
+}
+
+// Close modal on overlay click
+document.getElementById('calc-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeCalc();
+});
+
+// ============ SCROLL REVEAL ============
+const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+        }
+    });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+function observeReveals() {
+    document.querySelectorAll('.reveal, .reveal-left, .reveal-scale').forEach(el => {
+        revealObserver.observe(el);
+    });
+}
+
+// ============ INIT ============
+document.getElementById('search-bar').addEventListener('input', renderStores);
+initCaptcha();
+renderFilters();
+renderStores();
+observeReveals();
+</script>
+
+</body>
+</html>
